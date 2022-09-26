@@ -15,12 +15,12 @@ module fifo
     
     input clk_i,                        // input clock where read and writes can occur
     input reset_i,                      // 1: reset         0: do not reset 
-    input [width - 1 : 0] din_i,        // input data to be placed in fifo
-    input er_en_i,                      // 1: enable write to occur     0: not write occurs
-    input rd_en_i,                      // 1: enable read to occur      0: no read occurs 
-    output full_o,                      // 1: fifo is full              0: fifo is not full
-    output empty_o,                     // 1: fifo is empty             0: fifo is not empty
-    output [width - 1 : 0] dout_o       // output data bus to be read from fifo
+    input reg [width - 1 : 0] din_i,        // input data to be placed in fifo
+    input reg er_en_i,                      // 1: enable write to occur     0: not write occurs
+    input reg rd_en_i,                      // 1: enable read to occur      0: no read occurs 
+    output reg full_o,                      // 1: fifo is full              0: fifo is not full
+    output reg empty_o,                     // 1: fifo is empty             0: fifo is not empty
+    output reg [width - 1 : 0] dout_o       // output data bus to be read from fifo
     
 );
 
@@ -39,7 +39,7 @@ initial
 begin
     cstate_r <= EMPTY;
     full_o <= 0;
-    empty_o <= 0;
+    empty_o <= 1;
     dout_o <= 'b0;
 end
 
@@ -53,6 +53,20 @@ begin
         full_o <= 0;
         empty_o <= 1;
 
+
+    end
+    else
+    begin
+        case(cstate_r)
+            
+            EMPTY:
+            begin
+                if(wr_en_i)
+                begin
+
+                end
+            end
+        endcase
     end
 end
 
