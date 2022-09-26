@@ -47,24 +47,28 @@ end
 
 always @(posedge clk_i)
 begin
+    // synchronous reset
     if(reset_i == 1'b1)
     begin
         cstate_r <= EMPTY;
         full_o <= 0;
         empty_o <= 1;
-
-
     end
     else
     begin
+        // start of fifo state machine
         case(cstate_r)
             
             EMPTY:
             begin
-                if(wr_en_i)
-                begin
+                if(wr_en_i) cstate_r <= WRITE;
+                else if(rd_en_i) cstate <= READ;
+                
+            end
 
-                end
+            WRITE:
+            begin
+                if
             end
         endcase
     end
