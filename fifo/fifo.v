@@ -7,7 +7,7 @@ module fifo
 #(
     // parameters that describe the fifo
     parameter width = 8,
-    parameter depth = 8
+    parameter depth = 8             // Use only powers of two so the parameterized read and write pointers do not get messed up
 
 )
 
@@ -33,6 +33,10 @@ localparam FULL  = 2'b11;
 // internal registers
 reg [1:0] cstate_r;
 reg [width - 1 : 0] fifo_reg [depth - 1 : 0];
+
+// read and write pointers
+reg [clog2(depth) : 0] read_ptr;
+reg [clog2(depth) : 0] write_ptr;
 
 // initial state of the fifo
 initial
@@ -63,12 +67,16 @@ begin
             begin
                 if(wr_en_i) cstate_r <= WRITE;
                 else if(rd_en_i) cstate <= READ;
-                
+                else cstate <= EMPTY;                
             end
 
             WRITE:
             begin
-                if
+                write_ptr <= write_ptr + 1'b1;
+                if(read_ptr[clog2(depth)] == write_ptr[clog2(depth)])
+                begin
+                    cstate_r <= EMPTY;
+                end
             end
         endcase
     end
