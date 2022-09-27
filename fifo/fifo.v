@@ -67,8 +67,15 @@ begin
     write_ptr <= 0;
 end
 
-`define PTR_SIG_FULL (`RD_W_BIT != `WR_W_BIT)&&(`RD_A_BITS == `WR_A_BITS)
-`define PTR_SIG_EMPTY (`RD_W_BIT == `WR_W_BIT)&&(`RD_A_BITS == `WR_A_BITS)
+reg PTR_SIG_FULL;
+reg PTR_SIG_EMPTY;
+
+
+always @(*)
+begin
+    assign PTR_SIG_FULL = (`RD_W_BIT!=`WR_W_BIT)&&(`RD_A_BITS==`WR_A_BITS);
+    assign PTR_SIG_EMPTY = (`RD_W_BIT==`WR_W_BIT)&&(`RD_A_BITS==`WR_A_BITS);
+end
 
 always @(posedge clk_i)
 begin
@@ -95,8 +102,8 @@ begin
 
             IDLE:
             begin
-                if(`PTR_SIG_FULL) cstate_r <= FULL;
-                else if(`PTR_SIG_EMPTY) cstate_r <= EMPTY;
+                if(PTR_SIG_FULL) begin cstate_r <= FULL; full_o <= 1;end
+                else if(PTR_SIG_EMPTY) begin cstate_r <= EMPTY; empty_o <= 1;end
                 else if(wr_en_i) cstate_r <= WRITE;
                 else if(rd_en_i) cstate_r <= READ;
                 else cstate_r <= IDLE;
@@ -105,9 +112,10 @@ begin
             WRITE:
             begin
                 write_ptr <= write_ptr + 1'b1;
-                if(!`PTR_SIG_FULL)
+                if(!PTR_SIG_FULL)
                 begin
                     fifo_reg[`WR_A_BITS] <= din_i;
+                    empty_o <= 0;
                     if(wr_en_i) cstate_r <= WRITE;
                     else if(rd_en_i) cstate_r <= READ;
                     else cstate_r <= IDLE;
@@ -118,7 +126,7 @@ begin
             READ:
             begin
                 read_ptr <= read_ptr + 1'b1;
-                if(!`PTR_SIG_EMPTY)
+                if(!PTR_SIG_EMPTY)
                 begin
                     dout_o <= fifo_reg[`RD_A_BITS];
                     if(wr_en_i) cstate_r <= WRITE;
@@ -130,8 +138,9 @@ begin
             
             FULL:
             begin
-                if(wr_en_i) cstate_r <= WRITE;
-                else if(rd_en_i) cstate_r <= READ;
+                if(rd_en_i) cstate_r <= READ;
+                else if(PTR_SIG_FULL) cstate_r <= FULL;
+                else if(wr_en_i) cstate_r <= WRITE;
                 else cstate_r <= EMPTY;                
             end
         endcase
