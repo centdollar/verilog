@@ -25,13 +25,26 @@ module fifo
 );
 
 // localparams for the states of the fifo
-localparam EMPTY = 2'b00;
-localparam READ  = 2'b01;
-localparam WRITE = 2'b10;
-localparam FULL  = 2'b11;
+localparam EMPTY = 3'b000;
+localparam READ  = 3'b001;
+localparam WRITE = 3'b010;
+localparam FULL  = 3'b011;
+localparam IDLE  = 3'b100
+
+// defines
+// the following two are for the read and write pointers wrap bit which is
+// used to determine if the fifo is full or empty
+`define read_ptr[clog2(depth)] RD_W_BIT
+`define write_ptr[clog2(depth)] WR_W_BIT
+
+// the following are used for the address bits for the read and write fifo
+// pointers
+`define read_ptr[clog2(depth) - 1 : 0] RD_A_BITS
+`define write_ptr[clog2(depth) - 1 : 0] WR_A_BITS
+
 
 // internal registers
-reg [1:0] cstate_r;
+reg [2:0] cstate_r;
 reg [width - 1 : 0] fifo_reg [depth - 1 : 0];
 
 // read and write pointers
@@ -52,7 +65,7 @@ end
 always @(posedge clk_i)
 begin
     // synchronous reset
-    if(reset_i == 1'b1)
+    if(reset_i)
     begin
         cstate_r <= EMPTY;
         full_o <= 0;
@@ -73,9 +86,17 @@ begin
             WRITE:
             begin
                 write_ptr <= write_ptr + 1'b1;
-                if(read_ptr[clog2(depth)] == write_ptr[clog2(depth)])
+                if((RD_W_BIT == WR_W_BIT) && (RD_A_BITS == WR_A_BITS))
                 begin
                     cstate_r <= EMPTY;
+                end
+                else if((RD_W_BIT !+ WR_W_BIT) && (RD_A_BITS == WR_A_BITS))
+                begin
+                    cstate_r <= FULL;
+                end
+                else
+                begin
+                    fifo_reg[WR_A_BITS] <= din_i;
                 end
             end
         endcase
