@@ -22,9 +22,9 @@
 
 module uart_rx 
 #(
-BAUD_RATE = 115200, 
-CLK_FREQ = 300000000,
-BUS_WIDTH = 8
+parameter BAUD_RATE = 115200, 
+parameter CLK_FREQ = 300000000,
+parameter BUS_WIDTH = 8
 )
 (
 input i_rx_serial, 
