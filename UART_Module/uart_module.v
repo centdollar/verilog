@@ -24,29 +24,32 @@ module uart_module
 //parameters
 #(
 parameter BAUD_RATE = 115200,
-parameter CLK_FREQ = 300000000
+parameter CLK_FREQ = 300000000,
+parameter BUS_WIDTH = 8
 )
 //ports
 (
-input i_data,                   //Serial Data in for reciever
-input [3:0] i_data_bus,         //Bus data in for transmitter
-input i_clk,                    //Clock Signal
-input i_transmit,               //Control Signal to let the transmitter send data                          
-                                 //Output info signal that says when the data has been transmitted
-output [7:0] o_data_bus,        //Output data bus from reciever
-output o_serial                //Serial output from transmitter
-                            //Output info signal for when the transmitter is currently sending data
+input i_data,                                     //Serial Data in for reciever
+input [BUS_WIDTH - 1 : 0] i_data_bus,             //Bus data in for transmitter
+input i_clk,                                      //Clock Signal
+input i_transmit,                                 //Control Signal to let the transmitter send data                          
+                                                  //Output info signal that says when the data has been transmitted
+output [BUS_WIDTH - 1 : 0] o_data_bus,            //Output data bus from reciever
+output o_serial                                   //Serial output from transmitter
+                                                  //Output info signal for when the transmitter is currently sending data
 );
     
 wire o_data_transmitted;
 wire o_tx_active;
 wire w_rx_hs;
 wire w_rx_active;
+
 //Instantiate the reciever
 uart_rx 
 #(
 .BAUD_RATE(BAUD_RATE), 
-.CLK_FREQ(CLK_FREQ)
+.CLK_FREQ(CLK_FREQ),
+.BUS_WIDTH(BUS_WIDTH)
 )
 reciever 
 (
@@ -61,11 +64,12 @@ reciever
 uart_tx_v
 #(
 .BAUD_RATE(BAUD_RATE),
-.CLK_FREQ(CLK_FREQ)
+.CLK_FREQ(CLK_FREQ),
+.BUS_WIDTH(BUS_WIDTH)
 )
 transmitter
 (
-.i_data({4'b0011, i_data_bus}),
+.i_data(i_data_bus),
 .i_clk(i_clk),
 .i_tx_send(i_transmit),
 .o_tx(o_serial),

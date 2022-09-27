@@ -23,12 +23,13 @@
 module uart_rx 
 #(
 BAUD_RATE = 115200, 
-CLK_FREQ = 300000000
+CLK_FREQ = 300000000,
+BUS_WIDTH = 8
 )
 (
 input i_rx_serial, 
 input i_clk, 
-output reg [7:0] o_rx_bus,
+output reg [BUS_WIDTH - 1 : 0] o_rx_bus,
 output o_rx_hs,
 output o_rx_active
 );
@@ -37,7 +38,7 @@ output o_rx_active
 reg [2:0]r_bit_index;
 reg [11:0] r_clk_cnt;
 reg [1:0] r_cstate;
-reg [7:0] r_rx_data_bus;
+reg [BUS_WIDTH - 1 : 0] r_rx_data_bus;
 reg r_rx_active;
 reg r_rx_done;
 

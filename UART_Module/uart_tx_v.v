@@ -23,11 +23,12 @@
 module uart_tx_v
 #(
 parameter CLK_FREQ = 300000000,
-parameter BAUD_RATE = 115200
+parameter BAUD_RATE = 115200,
+parameter BUS_WIDTH = 8
 )
 (
 
-input [7:0] i_data,
+input [BUS_WIDTH - 1 : 0] i_data,
 input i_clk,
 input i_tx_send,
 output reg o_tx,
@@ -40,7 +41,7 @@ output o_active
 reg [2:0]r_bit_index;
 reg [11:0] r_clk_cnt;
 reg [1:0] r_cstate;
-reg [7:0] r_tx_data;
+reg [BUS_WIDTH - 1 : 0] r_tx_data;
 reg r_tx_active;
 reg r_tx_done;
 
