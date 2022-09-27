@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 // AUTHOR: Vincent Michelini
 // PURPOSE: Test bench for fifo.v
 // DESCRIPTION: test bench for fifo.v
@@ -70,4 +71,14 @@ begin
     #10;
 
 end
+
+
+initial
+begin
+    $dumpfile("test.vcd");
+    $dumpvars(0, fifo_tb);
+end
+
+
+
 endmodule
