@@ -2,6 +2,15 @@
 // Author: Vincent Michelini
 // Description: FIFO moudle to be used when testing the Lease Cache memory
 // controller
+// NOTE: To make the depth not a power of two do the following
+//
+//
+//       To implement both read and write at the same time add another state
+//       that is READandWRITE and have it increment both pointers and then do
+//       similar comparisons as the other states to see where to go next
+
+
+
 
 module fifo
 #(
@@ -24,7 +33,9 @@ module fifo
     
 );
 
+
 // localparam for depth
+// Needed for because you cant assign variable size in []
 localparam CLOG2_DEPTH = clog2(depth);
 
 // localparams for the states of the fifo
@@ -33,6 +44,7 @@ localparam READ  = 3'b001;
 localparam WRITE = 3'b010;
 localparam FULL  = 3'b011;
 localparam IDLE  = 3'b100;
+localparam READ_WRITE = 3'b101;
 
 // defines
 // the following two are for the read and write pointers wrap bit which is
@@ -84,9 +96,11 @@ begin
             
             EMPTY:
             begin
+                full_o <= 0;
+                empty_o <= 1;
                 if(wr_en_i) cstate_r <= WRITE;
                 else if(rd_en_i) cstate_r <= READ;
-                else cstate_r <= EMPTY;                
+                else cstate_r <= EMPTY; 
             end
 
             IDLE:
@@ -126,9 +140,12 @@ begin
             
             FULL:
             begin
+                full_o <= 1;
+                empty_o <= 0;
                 if(wr_en_i) cstate_r <= WRITE;
                 else if(rd_en_i) cstate_r <= READ;
                 else cstate_r <= EMPTY;                
+
             end
         endcase
     end
