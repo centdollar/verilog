@@ -15,9 +15,9 @@ module fifo
     
     input clk_i,                        // input clock where read and writes can occur
     input reset_i,                      // 1: reset         0: do not reset 
-    input reg [width - 1 : 0] din_i,        // input data to be placed in fifo
-    input reg er_en_i,                      // 1: enable write to occur     0: not write occurs
-    input reg rd_en_i,                      // 1: enable read to occur      0: no read occurs 
+    input [width - 1 : 0] din_i,        // input data to be placed in fifo
+    input wr_en_i,                      // 1: enable write to occur     0: not write occurs
+    input rd_en_i,                      // 1: enable read to occur      0: no read occurs 
     output reg full_o,                      // 1: fifo is full              0: fifo is not full
     output reg empty_o,                     // 1: fifo is empty             0: fifo is not empty
     output reg [width - 1 : 0] dout_o       // output data bus to be read from fifo
@@ -29,18 +29,20 @@ localparam EMPTY = 3'b000;
 localparam READ  = 3'b001;
 localparam WRITE = 3'b010;
 localparam FULL  = 3'b011;
-localparam IDLE  = 3'b100
+localparam IDLE  = 3'b100;
 
 // defines
 // the following two are for the read and write pointers wrap bit which is
 // used to determine if the fifo is full or empty
-`define read_ptr[clog2(depth)] RD_W_BIT
-`define write_ptr[clog2(depth)] WR_W_BIT
+`define RD_A_BITS read_ptr[clog2(depth)-1:0] 
+`define WR_A_BITS write_ptr[clog2(depth)-1:0] 
+
+`define RD_W_BIT read_ptr[clog2(depth)] 
+`define WR_W_BIT write_ptr[clog2(depth)] 
 
 // the following are used for the address bits for the read and write fifo
 // pointers
-`define read_ptr[clog2(depth) - 1 : 0] RD_A_BITS
-`define write_ptr[clog2(depth) - 1 : 0] WR_A_BITS
+
 
 
 // internal registers
