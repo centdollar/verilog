@@ -62,7 +62,8 @@ begin
     dout_o <= 'b0;
 end
 
-
+`define PTR_SIG_FULL (RD_W_BIT != WR_W_BIT)&&(RD_A_BITS == WR_A_BITS)
+`define PTR_SIG_EMPTY (RD_W_BIT == WR_W_BIT)&&(RD_A_BITS == WR_A_BITS)
 
 always @(posedge clk_i)
 begin
@@ -85,21 +86,26 @@ begin
                 else cstate <= EMPTY;                
             end
 
+            IDLE:
+            begin
+                if(PTR_SIG_FULL) cstate_r <= FULL;
+                else if(PTR_SIG_EMPTY) cstate_r <= EMPTY;
+                else if(wr_en_i) cstate_r <= WRITE;
+                else if(rd_en_i) cstate_r <= READ;
+                else cstate_r <= IDLE;
+            end
+
             WRITE:
             begin
                 write_ptr <= write_ptr + 1'b1;
-                if((RD_W_BIT == WR_W_BIT) && (RD_A_BITS == WR_A_BITS))
+                if(!PTR_SIG_FULL)
                 begin
-                    cstate_r <= EMPTY;
+                    fifo_reg[write_ptr[clog2(depth) - 1 : 0] <= din_i;
+                    if(wr_en_i) cstate_r <= WRITE;
+                    else if(rd_en_i) cstate_r <= READ;
+                    else cstate_r <= IDLE;
                 end
-                else if((RD_W_BIT !+ WR_W_BIT) && (RD_A_BITS == WR_A_BITS))
-                begin
-                    cstate_r <= FULL;
-                end
-                else
-                begin
-                    fifo_reg[WR_A_BITS] <= din_i;
-                end
+                else cstate_r <= FULL;
             end
         endcase
     end
