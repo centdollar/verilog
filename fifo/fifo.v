@@ -24,6 +24,9 @@ module fifo
     
 );
 
+// localparam for depth
+localparam CLOG2_DEPTH = clog2(depth);
+
 // localparams for the states of the fifo
 localparam EMPTY = 3'b000;
 localparam READ  = 3'b001;
@@ -34,11 +37,11 @@ localparam IDLE  = 3'b100;
 // defines
 // the following two are for the read and write pointers wrap bit which is
 // used to determine if the fifo is full or empty
-`define RD_A_BITS read_ptr[clog2(depth)-1:0] 
-`define WR_A_BITS write_ptr[clog2(depth)-1:0] 
+`define RD_A_BITS read_ptr[CLOG2_DEPTH - 1:0] 
+`define WR_A_BITS write_ptr[CLOG2_DEPTH - 1:0] 
 
-`define RD_W_BIT read_ptr[clog2(depth)] 
-`define WR_W_BIT write_ptr[clog2(depth)] 
+`define RD_W_BIT read_ptr[CLOG2_DEPTH] 
+`define WR_W_BIT write_ptr[CLOG2_DEPTH] 
 
 // the following are used for the address bits for the read and write fifo
 // pointers
@@ -50,8 +53,8 @@ reg [2:0] cstate_r;
 reg [width - 1 : 0] fifo_reg [depth - 1 : 0];
 
 // read and write pointers
-reg [clog2(depth) : 0] read_ptr;
-reg [clog2(depth) : 0] write_ptr;
+reg [CLOG2_DEPTH : 0] read_ptr;
+reg [CLOG2_DEPTH : 0] write_ptr;
 
 // initial state of the fifo
 initial
@@ -62,8 +65,8 @@ begin
     dout_o <= 'b0;
 end
 
-`define PTR_SIG_FULL (RD_W_BIT != WR_W_BIT)&&(RD_A_BITS == WR_A_BITS)
-`define PTR_SIG_EMPTY (RD_W_BIT == WR_W_BIT)&&(RD_A_BITS == WR_A_BITS)
+`define PTR_SIG_FULL (`RD_W_BIT != `WR_W_BIT)&&(`RD_A_BITS == `WR_A_BITS)
+`define PTR_SIG_EMPTY (`RD_W_BIT == `WR_W_BIT)&&(`RD_A_BITS == `WR_A_BITS)
 
 always @(posedge clk_i)
 begin
@@ -82,14 +85,14 @@ begin
             EMPTY:
             begin
                 if(wr_en_i) cstate_r <= WRITE;
-                else if(rd_en_i) cstate <= READ;
-                else cstate <= EMPTY;                
+                else if(rd_en_i) cstate_r <= READ;
+                else cstate_r <= EMPTY;                
             end
 
             IDLE:
             begin
-                if(PTR_SIG_FULL) cstate_r <= FULL;
-                else if(PTR_SIG_EMPTY) cstate_r <= EMPTY;
+                if(`PTR_SIG_FULL) cstate_r <= FULL;
+                else if(`PTR_SIG_EMPTY) cstate_r <= EMPTY;
                 else if(wr_en_i) cstate_r <= WRITE;
                 else if(rd_en_i) cstate_r <= READ;
                 else cstate_r <= IDLE;
@@ -98,14 +101,34 @@ begin
             WRITE:
             begin
                 write_ptr <= write_ptr + 1'b1;
-                if(!PTR_SIG_FULL)
+                if(!`PTR_SIG_FULL)
                 begin
-                    fifo_reg[write_ptr[clog2(depth) - 1 : 0] <= din_i;
+                    fifo_reg[`WR_A_BITS] <= din_i;
                     if(wr_en_i) cstate_r <= WRITE;
                     else if(rd_en_i) cstate_r <= READ;
                     else cstate_r <= IDLE;
                 end
                 else cstate_r <= FULL;
+            end
+            
+            READ:
+            begin
+                read_ptr <= read_ptr + 1'b1;
+                if(!`PTR_SIG_EMPTY)
+                begin
+                    dout_o <= fifo_reg[`RD_A_BITS];
+                    if(wr_en_i) cstate_r <= WRITE;
+                    else if(rd_en_i) cstate_r <= READ;
+                    else cstate_r <= IDLE;
+                end
+                else cstate_r <= EMPTY;
+            end
+            
+            FULL:
+            begin
+                if(wr_en_i) cstate_r <= WRITE;
+                else if(rd_en_i) cstate_r <= READ;
+                else cstate_r <= EMPTY;                
             end
         endcase
     end
