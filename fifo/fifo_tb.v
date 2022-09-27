@@ -5,7 +5,7 @@
 
 
 
-module fifo_tb.v();
+module fifo_tb();
 
 
 localparam depth = 8;
@@ -15,7 +15,7 @@ reg [width - 1 : 0] din_tb;
 reg wr_en_tb;
 reg rd_en_tb;
 reg clk_tb;
-reg reset_tb
+reg reset_tb;
 
 wire [width - 1 : 0] dout_tb;
 wire full_tb;
@@ -49,13 +49,13 @@ begin
     #19;
     reset_tb <= 0;
     din_tb <= 'hf0;
-    wr_en <= 1;
+    wr_en_tb <= 1;
     #5
-    wr_en <= 0;
+    wr_en_tb <= 0;
     #5;
-    wr_en <= 1;
+    wr_en_tb <= 1;
     #5;
-    wr_en <= 0;
+    wr_en_tb <= 0;
 
 
 end
