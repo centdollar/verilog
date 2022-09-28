@@ -120,6 +120,79 @@ begin
     rd_en_tb <= 1;
     @(posedge clk_tb)
     rd_en_tb <= 0;
+    @(negedge clk_tb)
+    rd_en_tb <= 1;
+    @(posedge clk_tb)
+    rd_en_tb <= 0;
+
+
+    reset_tb <= 1;
+    #40;
+    reset_tb <= 0;
+    @(posedge clk_tb)
+    wr_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    @(posedge clk_tb)
+    wr_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    @(posedge clk_tb)
+    din_tb <= 'h13;
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    rd_en_tb <= 1;
+
+    @(posedge clk_tb)
+    din_tb <= 'h12;
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    rd_en_tb <= 1;
+    @(posedge clk_tb)
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+
+    @(posedge clk_tb)
+    din_tb <= 'h13;
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    rd_en_tb <= 1;
+
+    @(posedge clk_tb)
+    din_tb <= 'h12;
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    rd_en_tb <= 1;
+    @(posedge clk_tb)
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+    
+    @(posedge clk_tb)
+    din_tb <= 'h13;
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    rd_en_tb <= 1;
+
+    @(posedge clk_tb)
+    din_tb <= 'h12;
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
+    @(negedge clk_tb)
+    wr_en_tb <= 1;
+    rd_en_tb <= 1;
+    @(posedge clk_tb)
+    wr_en_tb <= 0;
+    rd_en_tb <= 0;
 end
 
 // Clock signal
