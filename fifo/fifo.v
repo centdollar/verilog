@@ -39,16 +39,6 @@ module fifo
 // localparam for depth
 localparam CLOG2_DEPTH = $clog2(depth);
 
-
-// NOT NEEDED IN THIS DESIGN
-// localparams for the states of the fifo
-//localparam EMPTY = 3'b000;
-//localparam READ  = 3'b001;
-//localparam WRITE = 3'b010;
-//localparam FULL  = 3'b011;
-//localparam IDLE  = 3'b100;
-//localparam RW    = 3'b101;
-
 // defines
 // the following two are for the read and write pointers wrap bit which is
 // used to determine if the fifo is full or empty
@@ -58,18 +48,19 @@ localparam CLOG2_DEPTH = $clog2(depth);
 `define RD_W_BIT read_ptr[CLOG2_DEPTH] 
 `define WR_W_BIT write_ptr[CLOG2_DEPTH] 
 
-// the following are used for the address bits for the read and write fifo
-// pointers
-
-
 
 // internal registers
-//reg [2:0] cstate_r;       //NOT NEEDED
 reg [width - 1 : 0] fifo_reg [depth - 1 : 0];
 
 // read and write pointers
 reg [CLOG2_DEPTH : 0] read_ptr;
 reg [CLOG2_DEPTH : 0] write_ptr;
+
+
+// ptr signaling registers
+reg PTR_SIG_FULL;
+reg PTR_SIG_EMPTY;
+
 
 // initial state of the fifo
 initial
@@ -81,8 +72,6 @@ begin
     write_ptr <= 0;
 end
 
-reg PTR_SIG_FULL;
-reg PTR_SIG_EMPTY;
 
 
 always @(*)
@@ -103,7 +92,8 @@ begin
     end
     else
     begin
-       
+// IDEA: break this CL into sections and get rid of this big if() 
+
                 if((!PTR_SIG_FULL) || (!PTR_SIG_EMPTY))     // This will never evaluate to the else statement
                 begin
                     empty_o <= 0;
@@ -117,7 +107,6 @@ begin
                         end
                         else
                         begin
-//                            cstate_r <= RW;
                             read_ptr <= read_ptr + 1;
                             write_ptr <= write_ptr + 1;
                             dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
@@ -131,12 +120,10 @@ begin
                         
                         if(PTR_SIG_EMPTY)
                         begin
-//                            cstate_r <= RW;
                             empty_o <= 1;
                         end
                         else
                         begin
-//                            cstate_r <= RW;
                             read_ptr <= read_ptr + 1;
                             dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
                             if(PTR_SIG_EMPTY) empty_o <= 1;
@@ -146,12 +133,10 @@ begin
                     begin
                         if(PTR_SIG_FULL)
                         begin
-//                            cstate_r <= RW;
                             full_o <= 1;
                         end
                         else
                         begin
-//                            cstate_r <= RW;
                             write_ptr <= write_ptr + 1;
                             fifo_reg[write_ptr[CLOG2_DEPTH - 1 : 0]] <= din_i;
                             if(PTR_SIG_FULL) full_o <= 1;
@@ -161,14 +146,12 @@ begin
                     begin
                         if(PTR_SIG_FULL) full_o <= 1;
                         else if(PTR_SIG_EMPTY) empty_o <= 1;
-//                        cstate_r <= RW;
                     end
                 end
                 else
                 begin
                     if(PTR_SIG_FULL) full_o <= 1;
                     else empty_o <= 1;
-//                    else cstate_r <= RW;
                 end
             end
     end
