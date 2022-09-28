@@ -120,6 +120,10 @@ begin
     rd_en_tb <= 1;
     @(posedge clk_tb)
     rd_en_tb <= 0;
+    @(negedge clk_tb)
+    rd_en_tb <= 1;
+    @(posedge clk_tb)
+    rd_en_tb <= 0;
 end
 
 // Clock signal

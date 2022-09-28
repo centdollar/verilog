@@ -2,6 +2,18 @@
 // Author: Vincent Michelini
 // Description: FIFO moudle to be used when testing the Lease Cache memory
 // controller
+// NOTES:
+//          Right now the full_o and empty_o signals take an extra clock cycle to become high.
+//          The PTR_SIG... both go high and then the corresponding output signals take another cycle to complete
+//          REASONS:
+//          1. the assignment of the PTR_SIG... occur in an always @(*) block so they will always just occur immediatly
+//              - i feel like this is the reason and one clock cycle should not really affect the performace
+//
+//
+//
+// TODO: Optimize the code and remove redundancy, the first if statement is useless and their are def
+//       assignments that are not needed
+//       Basically improve the logic before pushing to main
 
 module fifo
 #(
@@ -27,12 +39,15 @@ module fifo
 // localparam for depth
 localparam CLOG2_DEPTH = $clog2(depth);
 
+
+// NOT NEEDED IN THIS DESIGN
 // localparams for the states of the fifo
-localparam EMPTY = 3'b000;
-localparam READ  = 3'b001;
-localparam WRITE = 3'b010;
-localparam FULL  = 3'b011;
-localparam IDLE  = 3'b100;
+//localparam EMPTY = 3'b000;
+//localparam READ  = 3'b001;
+//localparam WRITE = 3'b010;
+//localparam FULL  = 3'b011;
+//localparam IDLE  = 3'b100;
+//localparam RW    = 3'b101;
 
 // defines
 // the following two are for the read and write pointers wrap bit which is
@@ -49,7 +64,7 @@ localparam IDLE  = 3'b100;
 
 
 // internal registers
-reg [2:0] cstate_r;
+//reg [2:0] cstate_r;       //NOT NEEDED
 reg [width - 1 : 0] fifo_reg [depth - 1 : 0];
 
 // read and write pointers
@@ -59,7 +74,6 @@ reg [CLOG2_DEPTH : 0] write_ptr;
 // initial state of the fifo
 initial
 begin
-    cstate_r <= EMPTY;
     full_o <= 0;
     empty_o <= 1;
     dout_o <= 'b0;
@@ -82,7 +96,6 @@ begin
     // synchronous reset
     if(reset_i)
     begin
-        cstate_r <= EMPTY;
         full_o <= 0;
         empty_o <= 1;
         read_ptr <= 0;
@@ -90,61 +103,74 @@ begin
     end
     else
     begin
-        // start of fifo state machine
-        case(cstate_r)
-            
-            EMPTY:
-            begin
-                if(wr_en_i) cstate_r <= WRITE;
-                else if(rd_en_i) cstate_r <= READ;
-                else cstate_r <= EMPTY;                
-            end
-
-            IDLE:
-            begin
-                if(PTR_SIG_FULL) begin cstate_r <= FULL; full_o <= 1;end
-                else if(PTR_SIG_EMPTY) begin cstate_r <= EMPTY; empty_o <= 1;end
-                else if(wr_en_i) cstate_r <= WRITE;
-                else if(rd_en_i) cstate_r <= READ;
-                else cstate_r <= IDLE;
-            end
-
-            WRITE:
-            begin
-                write_ptr <= write_ptr + 1'b1;
-                if(!PTR_SIG_FULL)
+       
+                if((!PTR_SIG_FULL) || (!PTR_SIG_EMPTY))     // This will never evaluate to the else statement
                 begin
-                    fifo_reg[`WR_A_BITS] <= din_i;
                     empty_o <= 0;
-                    if(wr_en_i) cstate_r <= WRITE;
-                    else if(rd_en_i) cstate_r <= READ;
-                    else cstate_r <= IDLE;
+                    full_o <= 0;
+                    if(wr_en_i && rd_en_i)
+                    begin
+                        if(PTR_SIG_EMPTY || PTR_SIG_FULL)
+                        begin
+                            if(PTR_SIG_EMPTY) empty_o <= 1;
+                            else full_o <= 1;
+                        end
+                        else
+                        begin
+//                            cstate_r <= RW;
+                            read_ptr <= read_ptr + 1;
+                            write_ptr <= write_ptr + 1;
+                            dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
+                            fifo_reg[write_ptr[CLOG2_DEPTH - 1 : 0]] <= din_i;
+                            if(PTR_SIG_FULL) full_o <= 1;
+                            if(PTR_SIG_EMPTY) empty_o <= 1;
+                        end
+                    end
+                    else if(rd_en_i)
+                    begin
+                        
+                        if(PTR_SIG_EMPTY)
+                        begin
+//                            cstate_r <= RW;
+                            empty_o <= 1;
+                        end
+                        else
+                        begin
+//                            cstate_r <= RW;
+                            read_ptr <= read_ptr + 1;
+                            dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
+                            if(PTR_SIG_EMPTY) empty_o <= 1;
+                        end
+                    end
+                    else if(wr_en_i)
+                    begin
+                        if(PTR_SIG_FULL)
+                        begin
+//                            cstate_r <= RW;
+                            full_o <= 1;
+                        end
+                        else
+                        begin
+//                            cstate_r <= RW;
+                            write_ptr <= write_ptr + 1;
+                            fifo_reg[write_ptr[CLOG2_DEPTH - 1 : 0]] <= din_i;
+                            if(PTR_SIG_FULL) full_o <= 1;
+                        end
+                    end
+                    else
+                    begin
+                        if(PTR_SIG_FULL) full_o <= 1;
+                        else if(PTR_SIG_EMPTY) empty_o <= 1;
+//                        cstate_r <= RW;
+                    end
                 end
-                else cstate_r <= FULL;
-            end
-            
-            READ:
-            begin
-                read_ptr <= read_ptr + 1'b1;
-                if(!PTR_SIG_EMPTY)
+                else
                 begin
-                    dout_o <= fifo_reg[`RD_A_BITS];
-                    if(wr_en_i) cstate_r <= WRITE;
-                    else if(rd_en_i) cstate_r <= READ;
-                    else cstate_r <= IDLE;
+                    if(PTR_SIG_FULL) full_o <= 1;
+                    else empty_o <= 1;
+//                    else cstate_r <= RW;
                 end
-                else cstate_r <= EMPTY;
             end
-            
-            FULL:
-            begin
-                if(rd_en_i) cstate_r <= READ;
-                else if(PTR_SIG_FULL) cstate_r <= FULL;
-                else if(wr_en_i) cstate_r <= WRITE;
-                else cstate_r <= EMPTY;                
-            end
-        endcase
     end
-end
 
 endmodule
