@@ -1,19 +1,12 @@
 // Created on 9/26/2022
 // Author: Vincent Michelini
-// Description: FIFO moudle to be used when testing the Lease Cache memory
+// Description: FIFO module to be used when testing the Lease Cache memory
 // controller
 // NOTES:
-//          Right now the full_o and empty_o signals take an extra clock cycle to become high.
-//          The PTR_SIG... both go high and then the corresponding output signals take another cycle to complete
-//          REASONS:
-//          1. the assignment of the PTR_SIG... occur in an always @(*) block so they will always just occur immediatly
-//              - i feel like this is the reason and one clock cycle should not really affect the performace
 //
 //
-//
-// TODO: Optimize the code and remove redundancy, the first if statement is useless and their are def
-//       assignments that are not needed
-//       Basically improve the logic before pushing to main
+// TODO: Test furher and fix any edge cases that arise, for the time being the
+// module works as intended and provieds fast feedback to upper modules
 
 module fifo
 #(
@@ -76,9 +69,20 @@ end
 
 always @(*)
 begin
-    assign PTR_SIG_FULL = (`RD_W_BIT!=`WR_W_BIT)&&(`RD_A_BITS==`WR_A_BITS);
-    assign PTR_SIG_EMPTY = (`RD_W_BIT==`WR_W_BIT)&&(`RD_A_BITS==`WR_A_BITS);
+    PTR_SIG_FULL <= (`RD_W_BIT!=`WR_W_BIT)&&(`RD_A_BITS==`WR_A_BITS);
+    PTR_SIG_EMPTY <= (`RD_W_BIT==`WR_W_BIT)&&(`RD_A_BITS==`WR_A_BITS);
+    
+    
+    // This works really well and gets rid of the one clock cycle delay for
+    // upper level to recieve its full or empty
+    // This also reduces the number of times full and empty need to be
+    // assigned in the CL
+    full_o <= PTR_SIG_FULL ? 1 : 0;
+    empty_o <= PTR_SIG_EMPTY ? 1 : 0;
 end
+
+// Used for debugging and can be removed or commented out in final release
+reg inWrRd;
 
 always @(posedge clk_i)
 begin
@@ -89,71 +93,65 @@ begin
         empty_o <= 1;
         read_ptr <= 0;
         write_ptr <= 0;
+        inWrRd <= 0;
     end
     else
     begin
-// IDEA: break this CL into sections and get rid of this big if() 
-
-                if((!PTR_SIG_FULL) || (!PTR_SIG_EMPTY))     // This will never evaluate to the else statement
+        // Enables the ability to read and write at the same time
+        // Due to dout_o being a register it takes one clock cycle for the
+        // output data to be available
+        if(wr_en_i && rd_en_i)
+        begin
+            if(~(PTR_SIG_FULL || PTR_SIG_EMPTY))
+            begin
+                inWrRd <= 1;
+                read_ptr <= read_ptr + 1;
+                write_ptr <= write_ptr + 1;
+                if(~(PTR_SIG_FULL || PTR_SIG_EMPTY))
                 begin
-                    empty_o <= 0;
-                    full_o <= 0;
-                    if(wr_en_i && rd_en_i)
-                    begin
-                        if(PTR_SIG_EMPTY || PTR_SIG_FULL)
-                        begin
-                            if(PTR_SIG_EMPTY) empty_o <= 1;
-                            else full_o <= 1;
-                        end
-                        else
-                        begin
-                            read_ptr <= read_ptr + 1;
-                            write_ptr <= write_ptr + 1;
-                            dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
-                            fifo_reg[write_ptr[CLOG2_DEPTH - 1 : 0]] <= din_i;
-                            if(PTR_SIG_FULL) full_o <= 1;
-                            if(PTR_SIG_EMPTY) empty_o <= 1;
-                        end
-                    end
-                    else if(rd_en_i)
-                    begin
-                        
-                        if(PTR_SIG_EMPTY)
-                        begin
-                            empty_o <= 1;
-                        end
-                        else
-                        begin
-                            read_ptr <= read_ptr + 1;
-                            dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
-                            if(PTR_SIG_EMPTY) empty_o <= 1;
-                        end
-                    end
-                    else if(wr_en_i)
-                    begin
-                        if(PTR_SIG_FULL)
-                        begin
-                            full_o <= 1;
-                        end
-                        else
-                        begin
-                            write_ptr <= write_ptr + 1;
-                            fifo_reg[write_ptr[CLOG2_DEPTH - 1 : 0]] <= din_i;
-                            if(PTR_SIG_FULL) full_o <= 1;
-                        end
-                    end
-                    else
-                    begin
-                        if(PTR_SIG_FULL) full_o <= 1;
-                        else if(PTR_SIG_EMPTY) empty_o <= 1;
-                    end
+                    dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
+                    fifo_reg[write_ptr[CLOG2_DEPTH - 1 : 0]] <= din_i;
                 end
-                else
+            end    
+        end
+
+        // Section for writing to the fifo
+        else if(wr_en_i)
+        begin
+            if(~PTR_SIG_FULL)
+            begin
+                full_o <= 0;
+                write_ptr <= write_ptr + 1;
+                if(~PTR_SIG_FULL)
                 begin
-                    if(PTR_SIG_FULL) full_o <= 1;
-                    else empty_o <= 1;
+                    fifo_reg[write_ptr[CLOG2_DEPTH - 1 : 0]] <= din_i;
+                    if(!PTR_SIG_EMPTY) empty_o <= 0;
                 end
             end
-    end
+        end
 
+        // SEction for reading to the fifo
+        else if(rd_en_i)
+        begin
+            if(~PTR_SIG_EMPTY)
+            begin
+                read_ptr <= read_ptr + 1;
+                if(~PTR_SIG_EMPTY)
+                begin
+                    dout_o <= fifo_reg[read_ptr[CLOG2_DEPTH - 1 : 0]];
+                end
+            end
+        end
+
+        // If no read or write signals are high the fifo preserves its current
+        // state until a control signal arrives
+        else
+        begin
+            read_ptr <= read_ptr;
+            write_ptr <= write_ptr;
+        end
+
+
+    end
+end
 endmodule
