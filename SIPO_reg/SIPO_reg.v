@@ -6,7 +6,7 @@
 
 module SIPO_reg
 #(
-
+    parameter OUTPUT_BW = 8
 )
 (
 
@@ -15,12 +15,46 @@ module SIPO_reg
     input reset_i,              // 1: reset     0: no reset
     input clk_i,     
 
-    output reg [7 : 0]  dout_bus_o,
-    output data_ready
+    output reg [OUTPUT_BW - 1 : 0]  dout_bus_o,
+    output reg data_ready_o           // 1: ready to read     0: not ready to read
 );
 
-reg write_cnt_r;
 
+localparam CLOG2_BW = $clog2(OUTPUT_BW);
+reg [CLOG2_BW : 0] write_cnt_r;
+
+always @(posedge clk_i)
+begin
+    if(reset_i)
+    begin
+        write_cnt_r <= 0;
+        dout_bus_o <= 0;
+        data_ready_o <= 0;
+    end
+    else
+    begin
+        if(wr_en_i)
+        begin
+            if(write_cnt_r == OUTPUT_BW)
+            begin
+                data_ready_o <= 1;
+                write_cnt_r <= 0;
+            end
+            else
+            begin
+//                dout_bus_o[write_cnt_r] <= serial_data_i;
+                dout_bus_o <= {dout_bus_o[OUTPUT_BW - 1  - 1 : 0], serial_data_i};
+                write_cnt_r <= write_cnt_r + 1;
+            end
+        end
+        else  data_ready_o <= 0;
+
+
+    end
+
+
+
+end
 
 
 endmodule
