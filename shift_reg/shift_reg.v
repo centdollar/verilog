@@ -15,30 +15,61 @@
 
 module shift_reg
 #(
-
+    parameter SIZE = 8,
+    parameter SHIFT_LEFT = 1,
+    parameter SHIFT_RIGHT = 0,
+    parameter SHIFT_LOGICAL = 1,
+    parameter SHIFT_ARITHMETIC = 0,
+    parameter SHIFT_AMOUNT = 1
 )
 (
 
-    input [7 : 0] din_i,
+    input [SIZE - 1 : 0] din_i,
     input shift_i,          // 1: shift     0: no shift
     input clk_i,
+    input wr_en_i,          // 1: write     0: no write
     input reset_i,          // 1: reset     0: no reset
 
-    output reg [7 : 0] dout_o
+    output reg [SIZE - 1 : 0] dout_o
 
 );
 
-reg [7 : 0] data_reg;       // register that holds the data while shifting
+// reg [7 : 0] data_reg;       // register that holds the data while shifting
 
 always @(posedge clk_i)
 begin
     if(reset_i)
     begin
-        dout_0
+//        data_reg <- 0;
+        dout_o <= 0;
     end
-
+    else
+    begin
+        if(wr_en_i)
+        begin
+           dout_o <= din_i; 
+        end
+        else
+        begin
+            if(shift_i)
+            begin
+                if(SHIFT_LEFT && (SHIFT_LOGICAL | SHIFT_ARITHMETIC))
+                begin
+                    dout_o <= {dout_o[SIZE - 1 - SHIFT_AMOUNT : 0], {SHIFT_AMOUNT{1'b0}}};
+                end
+                else if(SHIFT_RIGHT && SHIFT_LOGICAL)
+                begin
+                    dout_o <= {{SHIFT_AMOUNT{1'b0}}, dout_o[SIZE - 1 : SHIFT_AMOUNT]};
+                end
+                else if(SHIFT_RIGHT && SHIFT_ARITHMETIC)
+                begin
+                    dout_o <= {{SHIFT_AMOUNT{dout_o[SIZE - 1]}}, dout_o[SIZE - 1 : SHIFT_AMOUNT]};
+                end
+                else dout_o <= dout_o;
+            end
+        end
+    end
 end
-
 
 
 
