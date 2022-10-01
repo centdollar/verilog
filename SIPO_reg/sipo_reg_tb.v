@@ -9,12 +9,16 @@ reg clk_tb;
 reg reset_tb;
 
 
-wire [7 : 0] dout_tb;
+wire [BW - 1  : 0] dout_tb;
 wire data_rdy_tb;
 
 
+localparam BW = 4;
+
 SIPO_reg #(
-.OUTPUT_BW(8)
+    .OUTPUT_BW(BW),
+    .SHIFT_LEFT(0),
+    .SHIFT_RIGHT(1)
 )
 muv
 (
@@ -44,55 +48,11 @@ begin
     reset_tb <= 1;
     serial_data_tb <= 0;
     wr_en_tb <= 0;
-    #20;
-    reset_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 1;
-    wr_en_tb <= 1;
+    #10; 
     @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 0;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 1;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 0;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 1;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 0;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 1;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 0;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-    @(negedge clk_tb)
-    serial_data_tb <= 1;
-    wr_en_tb <= 1;
-    @(posedge clk_tb)
-    wr_en_tb <= 0;
-
-
+    write(4);
+    @(negedge data_rdy_tb)
+    write(16);
 
 end
 
@@ -102,6 +62,28 @@ begin
     $dumpfile("test.vcd");
     $dumpvars(0, sipo_reg_tb);
 end
+
+integer i;
+
+task  write;
+    input [10 : 0]  N;
+    begin
+        for(i = 0; i < N; i = i + 1)
+        begin
+            @(negedge clk_tb)
+            serial_data_tb <= 1;
+            wr_en_tb <= 1;
+            @(negedge clk_tb)
+            wr_en_tb <= 0;
+            
+        end
+    end
+
+endtask
+
+
+
+
 
 
 endmodule

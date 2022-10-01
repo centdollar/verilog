@@ -11,12 +11,10 @@
 //          proper data
 //   
 //
-// TODO:    Could add functionality for making it a
-//          shift or could make it shift the data in from the other side going
-//          from 7 down to 0 instead of 0 to 7
-//          This can be done with params and then based on the params being
-//          true or false and then change the always block based on these
-//          params using if else if
+// TODO:   Added shift in left and right functionality
+//         Known issue is you need to write one more than the OUTPUT_BW for it
+//         to send the data_ready_o signal, this may be a testbench issue
+//         Either way it needs to be looked into 
 
 module SIPO_reg
 #(
@@ -39,6 +37,8 @@ module SIPO_reg
 localparam CLOG2_BW = $clog2(OUTPUT_BW);
 reg [CLOG2_BW : 0] write_cnt_r;
 
+
+
 always @(posedge clk_i)
 begin
     if(reset_i)
@@ -49,40 +49,37 @@ begin
     end
     else
     begin
-        if(wr_en_i)
+        if(wr_en_i & !data_ready_o)
         begin
-            if(write_cnt_r == OUTPUT_BW)
+            data_ready_o <= 0;
+            if(SHIFT_LEFT & !SHIFT_RIGHT)
             begin
-                data_ready_o <= 1;
-                write_cnt_r <= 0;
+                dout_bus_o <= {dout_bus_o[OUTPUT_BW - 1  - 1 : 0], serial_data_i};
+                write_cnt_r <= write_cnt_r + 1;
+                if(write_cnt_r == OUTPUT_BW)
+                begin
+                    data_ready_o <= 1;
+                    write_cnt_r <= 0;
+                end
+            end
+            else if(SHIFT_RIGHT & !SHIFT_LEFT)
+            begin
+                dout_bus_o <= {serial_data_i, dout_bus_o[OUTPUT_BW - 1 : 1]};
+                write_cnt_r <= write_cnt_r + 1;
+                if(write_cnt_r == OUTPUT_BW)
+                begin
+                    data_ready_o <= 1;
+                    write_cnt_r <= 0;
+                end
             end
             else
             begin
-                if(SHIFT_LEFT & !SHIFT_RIGHT)
-                begin
-                    dout_bus_o <= {dout_bus_o[OUTPUT_BW - 1  - 1 : 0], serial_data_i};
-                    write_cnt_r <= write_cnt_r + 1;
-                end
-                else if(SHIFT_RIGHT & !SHIFT_LEFT)
-                begin
-                    dout_bus_o <= {serial_data_i, dout_bus_o[OUTPUT_BW - 1 : 1]};
-                    write_cnt_r <= write_cnt_r + 1;
-                end
-                else
-                begin
-                    write_cnt_r <= 0;
-                    data_ready_0 <= 0;
-                end
+                write_cnt_r <= 0;
+                data_ready_0 <= 0;
             end
         end
-        else  data_ready_o <= 0;
-
-
     end
 
 
-
 end
-
-
 endmodule
