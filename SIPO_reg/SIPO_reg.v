@@ -2,7 +2,17 @@
 // Description: This is a serial in parallel out register
 //              the serial data in will be pushed out of the reigster once the
 //              register is full
-
+// NOTES:   One note is that the output data_ready signal does not come out
+//          until the next clock cycle, this could lose a cycle of time, but
+//          it also means that the module pulling the bus data will always get
+//          proper data
+//   
+// TODO:    Could add functionality for making it a logical or arithmatic
+//          shift or could make it shift the data in from the other side going
+//          from 7 down to 0 instead of 0 to 7
+//          This can be done with params and then based on the params being
+//          true or false and then change the always block based on these
+//          params using if else if
 
 module SIPO_reg
 #(
