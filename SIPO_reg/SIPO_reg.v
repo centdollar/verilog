@@ -1,0 +1,70 @@
+// Author: Vincent Michelini
+// Description: This is a serial in parallel out register
+//              the serial data in will be pushed out of the reigster once the
+//              register is full
+// NOTES:   One note is that the output data_ready signal does not come out
+//          until the next clock cycle, this could lose a cycle of time, but
+//          it also means that the module pulling the bus data will always get
+//          proper data
+//   
+// TODO:    Could add functionality for making it a logical or arithmatic
+//          shift or could make it shift the data in from the other side going
+//          from 7 down to 0 instead of 0 to 7
+//          This can be done with params and then based on the params being
+//          true or false and then change the always block based on these
+//          params using if else if
+
+module SIPO_reg
+#(
+    parameter OUTPUT_BW = 8
+)
+(
+
+    input serial_data_i,
+    input wr_en_i,
+    input reset_i,              // 1: reset     0: no reset
+    input clk_i,     
+
+    output reg [OUTPUT_BW - 1 : 0]  dout_bus_o,
+    output reg data_ready_o           // 1: ready to read     0: not ready to read
+);
+
+
+localparam CLOG2_BW = $clog2(OUTPUT_BW);
+reg [CLOG2_BW : 0] write_cnt_r;
+
+always @(posedge clk_i)
+begin
+    if(reset_i)
+    begin
+        write_cnt_r <= 0;
+        dout_bus_o <= 0;
+        data_ready_o <= 0;
+    end
+    else
+    begin
+        if(wr_en_i)
+        begin
+            if(write_cnt_r == OUTPUT_BW)
+            begin
+                data_ready_o <= 1;
+                write_cnt_r <= 0;
+            end
+            else
+            begin
+//                dout_bus_o[write_cnt_r] <= serial_data_i;
+                dout_bus_o <= {dout_bus_o[OUTPUT_BW - 1  - 1 : 0], serial_data_i};
+                write_cnt_r <= write_cnt_r + 1;
+            end
+        end
+        else  data_ready_o <= 0;
+
+
+    end
+
+
+
+end
+
+
+endmodule
