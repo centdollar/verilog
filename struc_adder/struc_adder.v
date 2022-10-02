@@ -5,24 +5,26 @@
 
 module struc_adder
 #(
-    parameter N = 4
+    parameter SIZE = 4
 )
 (
-    input [N - 1 : 0] dinx_i,
-    input [N - 1 : 0] diny_i,
+    input [SIZE - 1 : 0] dinx_i,
+    input [SIZE - 1 : 0] diny_i,
 
     output cout_o,
-    output [N - 1 : 0] sum_o
+    output [SIZE - 1 : 0] sum_o
 );
 
-wire [N : 0] internal_cin;
-assign interal_cin[0] = 0;
 
-genvar i;
+wire [SIZE : 0] internal_cin;
 generate
-    for(i = 0; i < N; i = i + 1)
-    begin : adder
-        struc_adder_1bit
+
+    assign internal_cin[0] = 0;
+    assign cout_o = internal_cin[SIZE];
+    genvar i;
+    for(i = 0; i < SIZE; i = i + 1)
+    begin
+       : adder struc_adder_1bit addr
         (
             .x_i(dinx_i[i]),
             .y_i(diny_i[i]),
@@ -32,6 +34,7 @@ generate
         );
     end
 endgenerate
+
 
 
 endmodule
