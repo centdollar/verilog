@@ -2,7 +2,28 @@
 // Description: verilog code for the FILO register, this will act as a stack
 //              in future uses of this. Due to this the write and read enable
 //              will be called push and pop respectively
-
+//
+// NOTE: To implement the STACK i am going to use pointers that point to the
+// locations of the read and the write. A diagram is below
+//              
+//         time:    1 2 3 4 5 6 7 8     1 2 3 4 5 6 7 8
+//                  wr                  rd
+//     1:  []       x                   x
+//     2:  []         x                   x
+//     3:  []           x                   
+//     4:  []
+//     5:  []
+//     6:  []
+//     7:  []
+//
+//          The read pointer is always one behind the write pointer so the
+//          read goes to the next space and the read points to the last
+//          written space
+//          
+//          For now I am going to omit the full signal and just have the stack
+//          circle to the beginning and overwrite the data that was written in
+//          the beginning
+//
 
 module filo_reg
 #(
@@ -30,15 +51,16 @@ reg [WIDTH - 1 : 0] stack [DEPTH - 1 : 0];
 
 // pointer that points to the end of the data in the stack, when it reaches
 // the end of the stack, it signifies that the stack is full
-reg [CLOG2 : 0] dataPtr;
+reg [CLOG2 : 0] writePtr;
+reg [CLOG2 : 0] readPtr;
 reg FULL;
 reg EMPTY;
 
 
 always @(*)
 begin
-    FULL <= (dataPtr == DEPTH) ? 1 : 0;
-    EMPTY <= (dataPtr == 0) ? 1 : 0;
+    FULL <= (writePtr == DEPTH) ? 1 : 0;
+    EMPTY <= (writePtr == 0) ? 1 : 0;
 
     full_o <= FULL;
     empty_o <= EMPTY;
@@ -49,17 +71,23 @@ always @(posedge clk_i)
 begin
     if(reset_i)
     begin
-        dataPtr <= 0;
+        writePtr <= 0;
+        readPtr <= -1;
         dout_o <= 0;
     end
     else
     begin
         if(push_i && ~FULL)
         begin
-            // TODO: redo this, first thought it to do a for loop to make it
-            // parameterizable.
-            // Think of other ways too
-            stack[DEPTH - 1 : 0] <= {stack[DEPTH - 1 - 1 : 1], din_i};
+            stack[writePtr] <= din_i;
+            writePtr <= writePtr + 1;
+            readPtr <= readPtr + 1;
+        end
+        else if(pop_i && ~EMPTY)
+        begin
+            dout_o <= stack[readPtr];
+            writePtr <= writePtr - 1;
+            readPtr <= readPtr - 1;
         end    
     end
 end
